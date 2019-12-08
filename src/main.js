@@ -1,66 +1,94 @@
-const arr = [1, 5, 8, 9, 10];
+import api from './services/api';
 
-// pecorrer o vetor e mostrar uma nova informação
-const newArr = arr.map(function(item) {
-  return item * 2;
-});
+class App {
+  constructor() {
+    this.repositories = [];
 
-console.log(newArr);
+    this.formEl = document.getElementById('repo-form');
+    this.inputEl = document.querySelector('input[name=repository]');
+    this.listEl = document.getElementById('repo-list');
 
-// construir todo o vetor e transformar em uma única variavel/valor
-const sum = arr.reduce(function(total, next) {
-  return total + next;
-});
+    this.registerHandlers();
+  }
 
-console.log(sum);
+  registerHandlers() {
+    this.formEl.onsubmit = event => this.addRepository(event);
+  }
 
-// filtrar ex: todos os números pares true/false
-const filter = arr.filter(function(item) {
-  return item % 2 === 0;
-});
+  setLoading(loading = true) {
+    if (loading === true) {
+      let loadingEl = document.createElement('span');
+      loadingEl.appendChild(document.createTextNode('Carregando...'));
+      loadingEl.setAttribute('id', 'loading');
 
-console.log(filter);
+      this.formEl.appendChild(loadingEl);
+    } else {
+      document.getElementById('loading').remove();
+    }
+  }
 
-// verifica se existe uma informação no array
-const find = arr.find(function(item) {
-  return item === 5;
-});
+  async addRepository(event) {
+    event.preventDefault();
 
-console.log(find);
+    const repoInput = this.inputEl.value;
 
-// class List {
-//   constructor() {
-//     this.data = [];
-//   }
+    if (repoInput.length === 0) return;
 
-//   add(data) {
-//     this.data.push(data);
-//     console.log(this.data);
-//   }
-// }
+    this.setLoading();
 
-// class TodoList extends List {
-//   constructor() {
-//     super();
+    try {
+      const response = await api.get(`/repos/${repoInput}`);
 
-//     this.user = 'Jhon';
-//   }
+      const {
+        name,
+        description,
+        html_url,
+        owner: { avatar_url }
+      } = response.data;
 
-//   showUser() {
-//     console.log(this.user);
-//   }
+      this.repositories.push({
+        name,
+        description,
+        avatar_url,
+        html_url
+      });
 
-//   static sum(a, b) {
-//     return a + b;
-//   }
-// }
+      this.inputEl.value = '';
+      this.render();
+    } catch (err) {
+      alert('O repositório não existe');
+    }
 
-// const MyList = new TodoList();
+    this.setLoading(false);
+  }
 
-// document.getElementById('newTodo').onclick = function() {
-//   MyList.add('New Todo');
-// };
+  render() {
+    this.listEl.innerHTML = '';
 
-// MyList.showUser();
+    this.repositories.forEach(repo => {
+      let imgEl = document.createElement('img');
+      imgEl.setAttribute('src', repo.avatar_url);
 
-// console.log(TodoList.sum(3, 5));
+      let titleEl = document.createElement('strong');
+      titleEl.appendChild(document.createTextNode(repo.name));
+
+      let descriptionEl = document.createElement('p');
+      descriptionEl.appendChild(document.createTextNode(repo.description));
+
+      let linkEl = document.createElement('a');
+      linkEl.setAttribute('target', '_blank');
+      linkEl.setAttribute('href', repo.html_url);
+      linkEl.appendChild(document.createTextNode('Acessar'));
+
+      let listItemEl = document.createElement('li');
+      listItemEl.appendChild(imgEl);
+      listItemEl.appendChild(titleEl);
+      listItemEl.appendChild(descriptionEl);
+      listItemEl.appendChild(linkEl);
+
+      this.listEl.appendChild(listItemEl);
+    });
+  }
+}
+
+new App();
